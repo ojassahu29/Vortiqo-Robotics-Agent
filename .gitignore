@@ -1,2 +1,26 @@
-#Python Virtual Environment
+# Python Virtual Environments
 .venv/
+.venvs/
+venv/
+env/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Environment / secrets
+.env
+
+# Logs
+logs/
+*.log
+
+# Model caches / weights
+models/hf_cache/
+*.pt
+*.pth
+*.safetensors
+
+# External repositories
+external/sam3/
