@@ -28,9 +28,23 @@ image_path = r"Z:\Robotics-AI-Agent\tests\sam3_test_image.png"
 image = Image.new("RGB", (800, 600), "white")
 draw = ImageDraw.Draw(image)
 
-draw.rectangle((100, 150, 300, 350), fill="red")
-draw.ellipse((400, 150, 600, 350), fill="blue")
-draw.rectangle((250, 400, 550, 520), fill="green")
+# Red rectangle
+draw.rectangle(
+    (100, 150, 300, 350),
+    fill="red",
+)
+
+# Blue circle
+draw.ellipse(
+    (400, 150, 600, 350),
+    fill="blue",
+)
+
+# Green rectangle
+draw.rectangle(
+    (250, 400, 550, 520),
+    fill="green",
+)
 
 image.save(image_path)
 
@@ -54,134 +68,138 @@ print("SAM3 loaded successfully.")
 
 
 # --------------------------------------------------
-# 4. Give SAM3 the image and run inference
+# 4. Process the image
 # --------------------------------------------------
 
 image = Image.open(image_path).convert("RGB")
 
 print("Processing image...")
 
-with torch.autocast(device_type="cuda", dtype=torch.bfloat16):
-
+with torch.autocast(
+    device_type="cuda",
+    dtype=torch.bfloat16,
+):
     inference_state = processor.set_image(image)
 
-    print("Image processed.")
-
-    print('Asking SAM3 to find: "a circle"')
-
-    output = processor.set_text_prompt(
-        state=inference_state,
-        prompt="a circle",
-    )
-
-print("Inference completed.")
+print("Image processed.")
 
 
 # --------------------------------------------------
-# 5. Get the results
+# 5. Test multiple language prompts
 # --------------------------------------------------
 
-masks = output["masks"]
-boxes = output["boxes"]
-scores = output["scores"]
+prompts = [
+    "a red object",
+    "a blue object",
+    "a green object",
+]
+
+all_results = {}
+
+
+for prompt in prompts:
+
+    print()
+    print(f'Asking SAM3: "{prompt}"')
+
+    with torch.autocast(
+        device_type="cuda",
+        dtype=torch.bfloat16,
+    ):
+        output = processor.set_text_prompt(
+            state=inference_state,
+            prompt=prompt,
+        )
+
+    # --------------------------------------------------
+    # IMPORTANT:
+    # Make independent copies of the result tensors.
+    #
+    # SAM3 may reuse/mutate output tensors when the next
+    # prompt is processed. clone() prevents previously
+    # stored results from changing.
+    # --------------------------------------------------
+
+    stored_output = {
+        "masks": output["masks"].detach().clone(),
+        "boxes": output["boxes"].detach().clone(),
+        "scores": output["scores"].detach().clone(),
+    }
+
+    all_results[prompt] = stored_output
+
+    masks = stored_output["masks"]
+    boxes = stored_output["boxes"]
+    scores = stored_output["scores"]
+
+    print(f"Detected objects: {len(scores)}")
+
+    for i in range(len(scores)):
+
+        # Move bounding box from GPU to CPU
+        box = boxes[i].detach().cpu().tolist()
+
+        x1, y1, x2, y2 = box
+
+        # Calculate bounding-box center
+        center_x = (x1 + x2) / 2
+        center_y = (y1 + y2) / 2
+
+        confidence = scores[i].item()
+
+        print(f"  Detection {i + 1}")
+        print(f"    Confidence: {confidence:.3f}")
+        print(
+            f"    Bounding box: "
+            f"[{x1:.1f}, {y1:.1f}, {x2:.1f}, {y2:.1f}]"
+        )
+        print(
+            f"    Center: "
+            f"({center_x:.1f}, {center_y:.1f})"
+        )
+
+
+# --------------------------------------------------
+# 6. Summary
+# --------------------------------------------------
 
 print()
-print("========== SAM3 RESULTS ==========")
-print(f"Number of detected objects: {len(scores)}")
-print(f"Masks shape: {masks.shape}")
-print(f"Boxes shape: {boxes.shape}")
-print(f"Scores: {scores}")
-print("==================================")
+print("==========================================")
+print("          MULTI-PROMPT SUMMARY")
+print("==========================================")
 
 
-# --------------------------------------------------
-# 6. Visualize the first detection
-# --------------------------------------------------
+for prompt, output in all_results.items():
 
-print("Creating visualization...")
+    prompt_scores = output["scores"]
+    prompt_boxes = output["boxes"]
 
-visualization = image.copy()
-draw = ImageDraw.Draw(visualization)
+    print()
+    print(f'Prompt: "{prompt}"')
+    print(f"Detections: {len(prompt_scores)}")
 
-# Get the first bounding box
-box = boxes[0].detach().cpu().tolist()
-x1, y1, x2, y2 = box
+    for i in range(len(prompt_scores)):
 
-# Draw bounding box
-draw.rectangle(
-    (x1, y1, x2, y2),
-    outline="yellow",
-    width=5,
-)
+        confidence = prompt_scores[i].item()
 
-# Draw label
-draw.text(
-    (x1, max(0, y1 - 20)),
-    f"circle: {scores[0].item():.3f}",
-    fill="yellow",
-)
+        box = prompt_boxes[i].detach().cpu().tolist()
 
+        x1, y1, x2, y2 = box
 
-# --------------------------------------------------
-# 6. Visualize the segmentation mask
-# --------------------------------------------------
+        center_x = (x1 + x2) / 2
+        center_y = (y1 + y2) / 2
 
-print("Creating mask visualization...")
-
-# Get the first mask from the GPU tensor
-mask = masks[0, 0].detach().cpu()
-
-# Convert mask to a NumPy array
-mask = mask.numpy()
-
-# Make sure the mask is boolean
-if mask.dtype != bool:
-    mask = mask > 0.5
-
-# Create a copy of the original image
-visualization = image.copy()
-
-# Create a transparent overlay
-overlay = Image.new("RGBA", visualization.size, (0, 0, 0, 0))
-overlay_pixels = overlay.load()
-
-# Color pixels belonging to the detected object
-for y in range(mask.shape[0]):
-    for x in range(mask.shape[1]):
-        if mask[y, x]:
-            overlay_pixels[x, y] = (255, 255, 0, 100)
-
-# Combine the overlay with the original image
-visualization = Image.alpha_composite(
-    visualization.convert("RGBA"),
-    overlay,
-)
-
-# Draw the bounding box and label
-draw = ImageDraw.Draw(visualization)
-
-box = boxes[0].detach().cpu().tolist()
-x1, y1, x2, y2 = box
-
-draw.rectangle(
-    (x1, y1, x2, y2),
-    outline="yellow",
-    width=5,
-)
-
-draw.text(
-    (x1, max(0, y1 - 20)),
-    f"circle: {scores[0].item():.3f}",
-    fill="yellow",
-)
+        print(f"  Detection {i + 1}")
+        print(f"    Confidence: {confidence:.3f}")
+        print(
+            f"    Bounding box: "
+            f"[{x1:.1f}, {y1:.1f}, {x2:.1f}, {y2:.1f}]"
+        )
+        print(
+            f"    Center: "
+            f"({center_x:.1f}, {center_y:.1f})"
+        )
 
 
-# --------------------------------------------------
-# 7. Save visualization
-# --------------------------------------------------
-
-output_path = r"Z:\Robotics-AI-Agent\tests\sam3_mask_result.png"
-
-visualization.save(output_path)
-
-print(f"Mask visualization saved to: {output_path}")
+print()
+print("Multi-prompt SAM3 test completed.")
