@@ -3,6 +3,7 @@ from pathlib import Path
 from PIL import Image
 
 from vortiqo.agent.world_state import WorldState
+from vortiqo.agent.world_state_adapter import scene_to_world_objects
 from vortiqo.perception.sam3_perception import SAM3Perception
 
 
@@ -11,7 +12,6 @@ from vortiqo.perception.sam3_perception import SAM3Perception
 # --------------------------------------------------
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-
 image_path = PROJECT_ROOT / "tests" / "sam3_test_image.png"
 
 print(f"Loading image: {image_path}")
@@ -22,7 +22,6 @@ print(f"Loading image: {image_path}")
 # --------------------------------------------------
 
 image = Image.open(image_path).convert("RGB")
-
 print(f"Image size: {image.size}")
 
 
@@ -32,7 +31,6 @@ print(f"Image size: {image.size}")
 
 print()
 print("Initializing SAM3 perception...")
-
 perception = SAM3Perception()
 
 
@@ -56,15 +54,17 @@ scene = perception.detect_scene(
 
 
 # --------------------------------------------------
-# 5. Create world state
+# 5. Convert perception output to world objects
 # --------------------------------------------------
 
 print()
 print("Creating world state...")
 
-world_state = WorldState()
+world_objects = scene_to_world_objects(scene)
 
-world_state.update(scene.objects)
+world_state = WorldState()
+world_state.update(world_objects)
+
 
 # --------------------------------------------------
 # 6. Display world state
@@ -78,7 +78,6 @@ print("==========================================")
 print(f"Objects currently known: {world_state.object_count()}")
 
 for i, obj in enumerate(world_state.objects):
-
     print()
     print(f"Object {i + 1}")
     print(f"  Label: {obj.label}")
