@@ -2,6 +2,7 @@ from typing import Any
 
 from vortiqo.agent.task_context import TaskContext
 from vortiqo.planning.ai_reasoner import AIReasoner
+from vortiqo.planning.reasoning_input import ReasoningInput
 from vortiqo.planning.task_plan import PlanStep, TaskPlan
 
 
@@ -10,32 +11,26 @@ class MockAIReasoner(AIReasoner):
     Mock implementation of the AI reasoning interface.
 
     This does not use a real AI model. It is only used to verify
-    that the complete AI reasoning pipeline works correctly.
+    that the AI reasoning pipeline works correctly.
     """
 
-    def build_input(self, context: TaskContext) -> dict[str, Any]:
-        """Convert TaskContext into a model-like input structure."""
+    def build_input(self, context: TaskContext) -> ReasoningInput:
+        """Convert TaskContext into structured reasoning input."""
 
-        return {
-            "goal": {
-                "action": context.goal.action,
-                "target": context.goal.target,
-            },
-            "world": [
-                {
-                    "label": obj.label,
-                    "confidence": obj.confidence,
-                    "location": obj.location,
-                }
-                for obj in context.world_state.objects
-            ],
-        }
+        reasoning_input = ReasoningInput(
+            goal_action=context.goal.action,
+            goal_target=context.goal.target,
+        )
 
-    def generate(self, model_input: dict[str, Any]) -> dict[str, Any]:
+        reasoning_input.from_context(context)
+
+        return reasoning_input
+
+    def generate(self, model_input: ReasoningInput) -> dict[str, Any]:
         """
         Simulate an AI model response.
 
-        A real model will replace this method later.
+        A real AI model will replace this method later.
         """
 
         return {
@@ -54,7 +49,7 @@ class MockAIReasoner(AIReasoner):
         }
 
     def parse_output(self, model_output: dict[str, Any]) -> TaskPlan:
-        """Convert the model response into a TaskPlan."""
+        """Convert model output into a TaskPlan."""
 
         plan = TaskPlan()
 

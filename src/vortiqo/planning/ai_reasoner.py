@@ -2,28 +2,29 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 from vortiqo.agent.task_context import TaskContext
+from vortiqo.planning.reasoning_input import ReasoningInput
 from vortiqo.planning.task_plan import TaskPlan
 from vortiqo.planning.task_reasoner import TaskReasoner
 
 
-class AIReasoner(TaskReasoner):
+class AIReasoner(TaskReasoner, ABC):
     """
-    Base interface for an AI-based task reasoning system.
+    Interface for an AI-based task reasoning system.
 
-    The implementation converts the current TaskContext into
-    model input, runs an AI model, and converts the model output
-    into a structured TaskPlan.
+    The reasoning system converts the current TaskContext into
+    structured reasoning input, runs an AI model, and converts
+    the model output into a TaskPlan.
     """
 
     @abstractmethod
-    def build_input(self, context: TaskContext) -> Any:
+    def build_input(self, context: TaskContext) -> ReasoningInput:
         """
-        Convert TaskContext into input suitable for the AI model.
+        Convert TaskContext into structured reasoning input.
         """
         pass
 
     @abstractmethod
-    def generate(self, model_input: Any) -> Any:
+    def generate(self, model_input: ReasoningInput) -> Any:
         """
         Run the AI model and return its output.
         """
@@ -32,7 +33,7 @@ class AIReasoner(TaskReasoner):
     @abstractmethod
     def parse_output(self, model_output: Any) -> TaskPlan:
         """
-        Convert the AI model output into a structured TaskPlan.
+        Convert AI model output into a structured TaskPlan.
         """
         pass
 
