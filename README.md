@@ -25,10 +25,10 @@ AI observes the new state
         ↓
 AI evaluates goal completion
         ↓
-       ┌───────┴───────┐
+      ┌───────┴───────┐
       NO              YES
-       ↓                ↓
-    Replan            Finish
+      ↓                ↓
+   Replan            Finish
 ```
 
 For example, given:
@@ -45,19 +45,19 @@ This perception → reasoning → action → verification loop is the central co
 
 The primary goals of the project are to develop a robotic agent capable of:
 
-* Understanding natural-language instructions
-* Extracting high-level task goals
-* Connecting language to objects and locations in the physical environment
-* Perceiving and understanding the surrounding scene
-* Maintaining a representation of the current world state
-* Decomposing high-level goals into actionable subtasks
-* Generating task plans dynamically
-* Generating robot actions using Vision-Language-Action models
-* Executing actions through a robotics software stack
-* Observing the environment after actions
-* Detecting whether the goal has been achieved
-* Replanning when the current plan is insufficient
-* Reporting task completion, failure, or uncertainty to the human
+- Understanding natural-language instructions
+- Extracting high-level task goals
+- Connecting language to objects and locations in the physical environment
+- Perceiving and understanding the surrounding scene
+- Maintaining a representation of the current world state
+- Decomposing high-level goals into actionable subtasks
+- Generating task plans dynamically
+- Generating robot actions using Vision-Language-Action models
+- Executing actions through a robotics software stack
+- Observing the environment after actions
+- Detecting whether the goal has been achieved
+- Replanning when the current plan is insufficient
+- Reporting task completion, failure, or uncertainty to the human
 
 ---
 
@@ -66,20 +66,23 @@ The primary goals of the project are to develop a robotic agent capable of:
 The intended architecture consists of several interacting layers:
 
 ```text
-                        HUMAN
-                          │
-                          │ Natural-language goal
-                          ▼
+                         HUMAN
+                           │
+                           │ Natural-language goal
+                           ▼
                 ┌─────────────────────┐
-                │  LANGUAGE / VLM     │
-                │      SmolVLM        │
+                │ LANGUAGE / GOAL     │
+                │ UNDERSTANDING       │
+                │                     │
+                │ Goal Parser         │
+                │ + VLM capabilities  │
                 └──────────┬──────────┘
                            │
                            ▼
                     Goal Understanding
                            │
                            ▼
-                    Task Reasoning
+                     Task Reasoning
                            │
                            ▼
                     Task Decomposition
@@ -87,42 +90,50 @@ The intended architecture consists of several interacting layers:
                            ▼
                 ┌─────────────────────┐
                 │     PERCEPTION      │
-                │ Camera + SAM3 + VLM │
+                │                     │
+                │ Camera + SAM3       │
+                │        +            │
+                │      SmolVLM2       │
                 └──────────┬──────────┘
                            │
                            ▼
-                      WORLD STATE
+                     Evidence Fusion
                            │
                            ▼
-                    Task Planning
+                       WORLD STATE
+                           │
+                           ▼
+                     Task Planning
                            │
                            ▼
                 ┌─────────────────────┐
-                │        VLA          │
-                │      SmolVLA        │
+                │         VLA         │
+                │       SmolVLA       │
                 └──────────┬──────────┘
                            │
                            ▼
-                   Robot Actions
+                      Robot Actions
                            │
                            ▼
-                       ROBOT
+                         ROBOT
                            │
                            ▼
-                     New State
+                       New State
                            │
                            ▼
-                    Verification
+                      Verification
                            │
-                  ┌────────┴────────┐
-                  │                 │
-                 NO                YES
-                  │                 │
-                  ▼                 ▼
-               Replan             Finish
+                   ┌───────┴───────┐
+                   │               │
+                  NO              YES
+                   │               │
+                   ▼               ▼
+                Replan           Finish
 ```
 
-The exact division of responsibility between the language model, perception models, reasoning/planning layer, and VLA policy will be refined during implementation.
+The exact division of responsibility between the language model, perception models, reasoning/planning layer, and VLA policy will continue to be refined through implementation and evaluation.
+
+A current architectural principle is that **SAM3 provides grounded visual evidence**, while **SmolVLM2 provides semantic interpretation**. SmolVLM2 outputs are treated as semantic evidence or hypotheses rather than unquestioned ground truth.
 
 ---
 
@@ -136,25 +147,78 @@ The project is being developed around the Hugging Face robotics ecosystem and re
 
 It is being explored for:
 
-* Robot interfaces
-* Robot policies
-* Vision-Language-Action models
-* Robot datasets
-* Imitation learning
-* Training and evaluation
-* Hardware integration
+- Robot interfaces
+- Robot policies
+- Vision-Language-Action models
+- Robot datasets
+- Imitation learning
+- Training and evaluation
+- Hardware integration
 
-### SmolVLM
+Current development environment:
 
-SmolVLM is being explored as a compact **Vision-Language Model** component.
+- Python 3.12.10
+- PyTorch 2.10.0 + CUDA 12.8 build
+- LeRobot 0.6.1
+- NVIDIA RTX 4060 Laptop GPU
 
-Potential responsibilities include:
+### SmolVLM2
 
-* Multimodal understanding
-* Visual scene interpretation
-* Connecting language to visual information
-* Understanding objects and their relationships
-* Supporting language grounding and reasoning
+SmolVLM2 is being evaluated as a compact **Vision-Language Model** for semantic visual understanding.
+
+Current model under evaluation:
+
+```text
+HuggingFaceTB/SmolVLM2-500M-Video-Instruct
+```
+
+The model is currently being explored for:
+
+- Visual scene interpretation
+- Object and attribute recognition
+- Connecting language to visual information
+- Semantic scene descriptions
+- Object relationships
+- Language grounding
+- Supporting task reasoning
+
+#### Current SmolVLM2 evaluation findings
+
+Initial inference testing has been performed on a controlled synthetic scene containing:
+
+- A red rectangular shape in the upper-left region
+- A blue circle in the upper-right region
+- A green rectangular shape in the lower region
+
+The model successfully identified the visible shapes when given constrained prompts and produced structured JSON containing color, shape, and approximate position.
+
+However, an open-ended prompt caused substantial semantic hallucination. The model interpreted the arrangement as a **flag** and generated additional contextual claims about national identity and pride that were not visually present.
+
+A subsequent targeted negative query asking whether a flag was actually visible produced:
+
+```text
+No.
+```
+
+This indicates that the model's behavior is strongly dependent on prompting and that its open-ended generation can introduce semantic priors that are not grounded in the image.
+
+The current working conclusion is therefore:
+
+> **SmolVLM2 is promising as a constrained semantic perception component, but unrestricted scene description should not be treated as authoritative ground truth.**
+
+The project will continue evaluating SmolVLM2 rather than discarding it based on the initial hallucination.
+
+Planned evaluation areas include:
+
+- Open-ended versus constrained visual descriptions
+- Object counting
+- Object attributes
+- Negative evidence
+- Spatial relationships
+- Natural-scene understanding
+- Task-relevant scene interpretation
+- Structured output reliability
+- Semantic interpretation of SAM3-generated object regions
 
 ### SmolVLA
 
@@ -176,18 +240,34 @@ Robot state
 
 SmolVLA is part of the LeRobot ecosystem and is intended to bridge visual/language information with robot manipulation actions.
 
+SmolVLA has **not yet been integrated into the active Vortiqo execution pipeline**. Its role will be evaluated after the perception, world-state, reasoning, and planning interfaces are sufficiently established.
+
 ### SAM3
 
-[Meta's SAM3](https://github.com/facebookresearch/sam3) is being explored for visual perception and segmentation.
+[Meta's SAM3](https://github.com/facebookresearch/sam3) is being used as a visual perception and segmentation component.
 
-Potential responsibilities include:
+Current responsibilities include:
 
-* Object segmentation
-* Region identification
-* Object localization
-* Visual scene information extraction
+- Object segmentation
+- Region identification
+- Object localization
+- Bounding-box extraction
+- Mask generation
+- Confidence estimation
+- Visual scene information extraction
 
-SAM3 is primarily considered a **perception component** rather than the task-planning or action-generation component.
+SAM3 is primarily treated as a **grounded perception component**, rather than the task-planning or action-generation component.
+
+Current SAM3 testing has successfully detected multiple objects from a controlled synthetic scene and produced structured observations containing:
+
+- Label
+- Confidence
+- Bounding box
+- Center position
+- Segmentation mask
+- Mask area
+
+The SAM3 model checkpoint is stored through the Hugging Face cache on the project's Z: drive. The official SAM3 source repository is kept separately under `external/sam3`.
 
 ---
 
@@ -262,6 +342,56 @@ For example, an object that was hidden during the initial observation may become
 
 ---
 
+## Perception and Evidence Fusion
+
+The current perception architecture separates **grounded geometric evidence** from **semantic interpretation**.
+
+```text
+                         CAMERA
+                            │
+                 ┌──────────┴──────────┐
+                 │                     │
+                 ▼                     ▼
+               SAM3                SmolVLM2
+                 │                     │
+        masks / boxes /          semantic evidence
+        geometry / confidence    attributes / labels
+                 │                     │
+                 └──────────┬──────────┘
+                            ▼
+                     Evidence Fusion
+                            │
+                            ▼
+                       WORLD STATE
+```
+
+The purpose of this separation is to avoid allowing a generative VLM to silently replace grounded observations.
+
+For example:
+
+```text
+SAM3:
+    region_01
+    bbox = [...]
+    mask = [...]
+    detection_confidence = 0.91
+
+SmolVLM2:
+    semantic_label = "cup"
+    semantic interpretation = ...
+```
+
+The system should retain the distinction between:
+
+- What is geometrically observed
+- What is semantically inferred
+- How confident each source is
+- Which model produced each observation
+
+This evidence-fusion layer is still under development.
+
+---
+
 ## World State
 
 The agent requires a representation of the environment that can be used for planning.
@@ -274,21 +404,37 @@ Object
  ├── Location
  ├── Properties
  ├── Relationships
- └── Task relevance
+ ├── Task relevance
+ └── Observation / confidence metadata
 ```
 
-For example:
+Current implementation includes explicit `WorldObject` and `WorldState` structures.
+
+A `WorldObject` currently stores:
+
+- Label
+- Confidence
+- Bounding box
+- Center
+- Segmentation mask
+- Mask area
+- Optional semantic location
+
+The current implementation intentionally keeps the world-state representation independent from the SAM3 `Scene` object. A dedicated adapter converts perception output into world-state objects.
+
+Semantic information from SmolVLM2 has **not yet been directly merged into the authoritative world state**. This will be introduced through an evidence-fusion/normalization layer after further evaluation.
+
+Example conceptual state:
 
 ```text
-Cup
- ├── Location: Table
- ├── Destination: Storage
- └── Relevant to current goal: Yes
-
-Bottle
- ├── Location: Table
- ├── Destination: Recycling
- └── Relevant to current goal: Yes
+Object:
+    Identity: red cup
+    Location: Table
+    Properties: [...]
+    Relationships: [...]
+    Relevant to current goal: Yes
+    Detection confidence: [...]
+    Semantic confidence: [...]
 ```
 
 The world state is intended to provide the bridge between perception and task planning.
@@ -329,14 +475,105 @@ Similarly:
 
 must be translated from an abstract goal into a set of meaningful physical actions.
 
+### Current language implementation
+
+The current baseline language layer contains a structured `Goal` representation:
+
+```text
+Goal
+ ├── action
+ └── target
+```
+
+A temporary rule-based goal parser currently supports basic variations of cleaning/table instructions, including:
+
+- "Clean the table."
+- "Can you get the table cleaned up?"
+- "I want the table tidy."
+- "Please clear everything from the table."
+
+This parser is a **temporary baseline**, not the intended final language-understanding system.
+
 ---
 
-## Repository Structure
+## Task Context
+
+The goal and current world state are combined into a `TaskContext` before reasoning.
+
+Conceptually:
+
+```text
+Goal
+  +
+World State
+  ↓
+Task Context
+  ↓
+Reasoning / Planning
+```
+
+This establishes a stable interface between language understanding, perception, and the planning layer.
+
+---
+
+## Task Reasoning and Planning
+
+The planning layer uses a structured task representation.
+
+A `PlanStep` currently contains:
+
+```text
+PlanStep
+ ├── action
+ ├── target
+ ├── destination
+ └── parameters
+```
+
+A `TaskPlan` contains an ordered list of `PlanStep` objects.
+
+The project currently contains:
+
+- A `TaskReasoner` abstract interface
+- A temporary `BaselineReasoner`
+- An `AIReasoner` abstraction
+- A `ReasoningInput` representation
+- A `MockAIReasoner` used to validate the reasoning/planning interfaces
+
+The baseline and mock implementations exist to validate architecture and data flow. They are **not the final autonomous reasoning system**.
+
+The intended future flow is:
+
+```text
+Goal
+  +
+World State
+  ↓
+Reasoning Input
+  ↓
+AI Task Reasoner
+  ↓
+Task Plan
+  ↓
+Action Generation
+```
+
+The final reasoning model and planning strategy remain under evaluation.
+
+---
+
+## Current Repository Structure
 
 The repository is organized to keep the major components of the agent separate:
 
 ```text
-Vortiqo-Robotics-Agent/
+Epson-VT6L-Vision-Guided-System/   # separate WILP project
+```
+
+Vortiqo uses:
+
+```text
+Robotics-AI-Agent/
 │
 ├── README.md
 ├── LICENSE
@@ -346,11 +583,6 @@ Vortiqo-Robotics-Agent/
 ├── pyproject.toml
 │
 ├── configs/
-│   ├── default.yaml
-│   ├── models.yaml
-│   ├── robot.yaml
-│   ├── camera.yaml
-│   └── environments.yaml
 │
 ├── src/
 │   └── vortiqo/
@@ -384,19 +616,19 @@ High-level agent orchestration, goal management, world-state management, and tas
 
 ### `perception/`
 
-Camera processing, SAM3 integration, segmentation, object localization, scene understanding, and visual grounding.
+Camera processing, SAM3 integration, segmentation, object localization, scene understanding, and visual grounding. SmolVLM2 semantic perception is also being evaluated here.
 
 ### `language/`
 
-Natural-language processing, SmolVLM integration, goal extraction, and language grounding.
+Natural-language processing, goal extraction, and language grounding. VLM capabilities may contribute to language/vision grounding as the architecture evolves.
 
 ### `planning/`
 
-Task decomposition, task planning, action planning, and replanning.
+Task decomposition, task planning, action planning, reasoning interfaces, and replanning.
 
 ### `policy/`
 
-VLA models and action-generation components, including SmolVLA.
+VLA models and action-generation components, including future SmolVLA integration.
 
 ### `robotics/`
 
@@ -418,17 +650,114 @@ Experimental implementations and research code that may later be converted into 
 
 Unit and integration tests for the individual system components.
 
+Current tests cover, among other things:
+
+- SAM3 perception
+- World-state construction
+- Goal parsing
+- Task context
+- Reasoning input
+- Mock AI reasoning
+- SmolVLM2 model loading and inference
+
 ### `models/`
 
-Local model weights and checkpoints.
+Local model weights, checkpoints, and model-cache configuration.
 
 Large model files should not be committed to Git.
+
+The project's Hugging Face cache is configured on the Z: drive:
+
+```text
+Z:\Robotics-AI-Agent\models\hf_cache
+```
+
+This keeps large model artifacts off the system C: drive.
 
 ### `data/`
 
 Datasets, demonstrations, processed data, and experimental data.
 
 Large datasets should generally remain outside Git and be referenced through appropriate dataset/configuration mechanisms.
+
+### `external/`
+
+Third-party source repositories used by the project.
+
+For example:
+
+```text
+external/
+└── sam3/
+```
+
+The SAM3 source repository is kept separately from its downloaded model checkpoint/cache.
+
+---
+
+## Development Environment
+
+The primary Vortiqo development environment is:
+
+```text
+Z:\Robotics-AI-Agent\.venv
+```
+
+Current validated environment:
+
+```text
+Python:       3.12.10
+PyTorch:      2.10.0+cu128
+Torchvision:  0.25.0+cu128
+LeRobot:      0.6.1
+Transformers: 5.17.0
+NumPy:        2.2.6
+GPU:          NVIDIA GeForce RTX 4060 Laptop GPU
+CUDA:         Available
+```
+
+SAM3 is maintained in an isolated environment:
+
+```text
+Z:\Robotics-AI-Agent\.venvs\sam3
+```
+
+The SAM3 environment uses a compatible dependency configuration that is kept separate from the main Vortiqo environment.
+
+The project deliberately allows model-specific environments where dependency conflicts make isolation preferable.
+
+---
+
+## Model and Storage Management
+
+Large model artifacts are not stored directly in the Git repository.
+
+Hugging Face model caching is configured to use:
+
+```text
+HF_HOME=Z:\Robotics-AI-Agent\models\hf_cache
+```
+
+Currently downloaded model artifacts include:
+
+```text
+SAM3
+SmolVLM2-500M-Video-Instruct
+```
+
+The project therefore separates:
+
+```text
+Third-party source code
+        ↓
+external/
+
+Downloaded model artifacts
+        ↓
+models/hf_cache/
+```
+
+This distinction should be maintained as additional models are introduced.
 
 ---
 
@@ -438,17 +767,19 @@ The project is intended to progress through the following stages.
 
 ### Stage 1 — Environment Setup
 
-Set up:
+Completed/validated areas include:
 
-* Python environment
-* PyTorch
-* Hugging Face ecosystem
-* LeRobot
-* SAM3
-* SmolVLM
-* SmolVLA
+- Python environment
+- PyTorch
+- CUDA GPU inference
+- Hugging Face ecosystem
+- LeRobot
+- SAM3
+- SmolVLM2
 
-The objective is to establish a functioning development environment for the robotics AI stack.
+SmolVLA remains under evaluation and has not yet been integrated into the active execution pipeline.
+
+The objective is to maintain a functioning development environment for the robotics AI stack while isolating model-specific dependencies where necessary.
 
 ### Stage 2 — Perception
 
@@ -456,13 +787,38 @@ Develop the visual perception pipeline:
 
 ```text
 Camera
-  ↓
-Vision Models / SAM3
-  ↓
-Objects + Scene Information
-  ↓
+   ↓
+SAM3
+   ↓
+Grounded visual regions
+   ↓
+SmolVLM2
+   ↓
+Semantic interpretation
+   ↓
+Evidence Fusion
+   ↓
 World State
 ```
+
+Current progress:
+
+- SAM3 environment established
+- SAM3 checkpoint downloaded and validated sufficiently for local testing
+- SAM3 multi-object perception tested
+- Structured perception objects implemented
+- World-state representation implemented
+- SmolVLM2 model downloaded and loaded successfully
+- SmolVLM2 controlled inference tested
+- SmolVLM2 hallucination behavior identified and is being investigated
+
+Next perception work:
+
+- Evaluate SmolVLM2 on natural scenes
+- Evaluate semantic attributes and relationships
+- Test SAM3-region/crop → SmolVLM2 inference
+- Define semantic evidence normalization
+- Fuse SAM3 and SmolVLM2 observations into the world state
 
 ### Stage 3 — Language Understanding
 
@@ -475,6 +831,16 @@ Language / VLM
        ↓
 Goal representation
 ```
+
+Current baseline:
+
+```text
+Goal
+ ├── action
+ └── target
+```
+
+A temporary deterministic parser validates the interface. More capable language understanding will be introduced after the perception/reasoning interfaces are stable.
 
 ### Stage 4 — Task Reasoning and Planning
 
@@ -490,21 +856,36 @@ Task Decomposition
 Task Plan
 ```
 
+Current progress:
+
+- `TaskContext`
+- `TaskReasoner`
+- `AIReasoner`
+- `ReasoningInput`
+- `PlanStep`
+- `TaskPlan`
+- Baseline reasoner
+- Mock AI reasoner
+
+The mock/baseline implementations exist for architectural validation and will eventually be replaced or supplemented by the actual reasoning system.
+
 ### Stage 5 — Robot Policy
 
 Use visual observations, task information, and robot state to generate robot actions through the VLA policy.
 
 ```text
 Instruction
-     +
+    +
 Visual observations
-     +
+    +
 Robot state
-     ↓
+    ↓
   SmolVLA
-     ↓
+    ↓
 Robot actions
 ```
+
+This stage has not yet been integrated into the complete Vortiqo loop.
 
 ### Stage 6 — Execution
 
@@ -525,6 +906,8 @@ Verify
  ├── Goal achieved → Finish
  └── Goal not achieved → Replan
 ```
+
+The final verification mechanism must evaluate the **requested goal**, rather than merely checking whether a predefined list of objects has been processed.
 
 ---
 
@@ -571,7 +954,7 @@ The reporting layer should be capable of communicating completion, failure, unce
 
 ## Difference From the WILP Robotics Project
 
-Vortiqo intentionally differs from the industrial robotics project being developed separately.
+Vortiqo intentionally differs from the separate industrial robotics project.
 
 ### Industrial Robotics Project
 
@@ -617,27 +1000,59 @@ Feedback
 Goal verification
 ```
 
-The defining distinction is that **the human provides the goal while the AI determines the procedure**.
+The defining distinction is that:
+
+> **The human provides the goal while the AI determines the procedure.**
 
 ---
 
 ## Current Development Status
 
-The project is currently in the development and integration phase.
+The project is currently in the **architecture, perception, and model-evaluation phase**.
 
-Current areas of work include:
+### Implemented and validated
 
-* Robotics AI environment setup
-* LeRobot exploration
-* SmolVLM exploration
-* SmolVLA exploration
-* SAM3 environment setup
-* Vision/perception experiments
-* Defining the agent architecture
-* Designing the world-state representation
-* Planning the perception → reasoning → action → verification loop
+- Repository architecture
+- Python package structure
+- Main development environment
+- CUDA-enabled PyTorch inference
+- LeRobot installation
+- Isolated SAM3 environment
+- SAM3 model/source setup
+- SAM3 multi-object perception tests
+- Structured perception output
+- World-state data structures
+- Scene → world-state adapter
+- Baseline natural-language goal parser
+- Task context
+- Task planning data structures
+- Abstract task-reasoning interface
+- AI reasoning interface
+- Mock AI reasoner
+- SmolVLM2 model setup
+- SmolVLM2 GPU inference
+- Structured SmolVLM2 scene extraction test
+- Controlled SmolVLM2 hallucination experiment
 
-The exact division of responsibility between individual models and system components will be finalized as implementation and evaluation progress.
+### Current findings
+
+SAM3 is currently functioning as the project's grounded visual perception component.
+
+SmolVLM2 has demonstrated useful constrained visual understanding on controlled scenes, including object counting and structured color/shape/position extraction. It has also demonstrated significant hallucination under unconstrained scene-description prompts.
+
+The current design therefore treats SmolVLM2 as a **semantic evidence source**, not an unquestioned source of world-state truth.
+
+### Current work
+
+- SmolVLM2 natural-scene evaluation
+- SmolVLM2 prompt/grounding evaluation
+- SAM3 + SmolVLM2 evidence fusion design
+- World-state semantic normalization
+- Task reasoning integration
+- Evaluation of planning strategies
+- Future SmolVLA integration
+
+The exact division of responsibility between individual models and system components will continue to be finalized as implementation and evaluation progress.
 
 ---
 
@@ -647,9 +1062,15 @@ The core principle of Vortiqo is:
 
 ```text
 HUMAN PROVIDES THE GOAL.
+
+AI OBSERVES THE ENVIRONMENT.
+
 AI FIGURES OUT THE PROCEDURE.
+
 ROBOT EXECUTES THE PROCEDURE.
+
 AI OBSERVES THE RESULT.
+
 AI DECIDES WHETHER THE GOAL IS ACHIEVED.
 ```
 
@@ -661,28 +1082,31 @@ The project therefore focuses on **agentic AI for robotics**, rather than simply
 
 The project brings together concepts from:
 
-* Natural Language Processing
-* Multimodal AI
-* Computer Vision
-* Vision-Language Models
-* Vision-Language-Action Models
-* Scene Understanding
-* Visual Grounding
-* Task Planning
-* Task Decomposition
-* Imitation Learning
-* Robot Learning
-* Agentic AI
-* World-State Representation
-* Feedback and Replanning
-* Autonomous Manipulation
+- Natural Language Processing
+- Multimodal AI
+- Computer Vision
+- Vision-Language Models
+- Vision-Language-Action Models
+- Scene Understanding
+- Visual Grounding
+- Task Planning
+- Task Decomposition
+- Imitation Learning
+- Robot Learning
+- Agentic AI
+- World-State Representation
+- Evidence Fusion
+- Feedback and Replanning
+- Autonomous Manipulation
 
 ---
 
 ## Status
 
 **Project:** Vortiqo Robotics AI Agent
+
 **Type:** Robotics AI / Agentic AI / VLA
+
 **Development Status:** Active Development
 
 The architecture and model stack are under active development and may change as individual components are evaluated.
