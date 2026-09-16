@@ -1,7 +1,7 @@
 from vortiqo.agent.task_context import TaskContext
 from vortiqo.agent.world_state import WorldObject, WorldState
 from vortiqo.language.goal_parser import GoalParser
-from vortiqo.planning.task_reasoner import TaskReasoner
+from vortiqo.planning.baseline_reasoner import BaselineReasoner
 
 
 print("Creating task context...")
@@ -74,7 +74,8 @@ context = TaskContext(
 # 4. Run task reasoning
 # --------------------------------------------------
 
-reasoner = TaskReasoner()
+# pyrefly: ignore [bad-instantiation]
+reasoner = BaselineReasoner()
 plan = reasoner.reason(context)
 
 
