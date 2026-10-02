@@ -1,6 +1,8 @@
 # Vortiqo
 
-**Vortiqo** is a planned goal-driven robotics agent. A person will type an instruction into a web interface, and a robot arm in Gazebo will interpret the intended outcome, inspect the scene, plan and perform actions, then check whether the outcome was achieved.
+**Company:** Vortiqo.
+
+This project is being developed for the company named **Vortiqo**. The project itself is a goal-driven robotics agent: a person will type an instruction into a web interface, and a robot arm in Gazebo will interpret the intended outcome, inspect the scene, plan and perform actions, then check whether the outcome was achieved.
 
 The demonstration domain is a tabletop workspace. For example, given **“tidy the table”**, the agent should identify loose objects, decide where each belongs under the workspace's stated conventions, move them with a simulated gripper, and inspect the table again. It should also handle direct requests such as **“put the red cup in the tray.”** If a request is genuinely ambiguous or outside the robot's capabilities, it should explain the uncertainty or ask for clarification.
 
@@ -24,3 +26,7 @@ SAM3 is intended to locate and segment objects; SmolVLM2 is intended to help ide
 The target is a reproducible end-to-end simulation, launched with documented commands, that accepts written goals through the frontend and completes direct and reasonably vague tabletop tasks. Evaluation will use varied object arrangements and prompt wording, and will report task success, perception errors, grasp failures, and replanning behavior. Gazebo's true object state may score runs but will not be the agent's runtime perception source.
 
 **Status:** Fresh start. The repository has an empty, organized scaffold and an [implementation plan](PROJECT_PLAN.md). The simulator, agent, models, and frontend still need to be built.
+
+## Why `vortiqo` appears in folder names
+
+The folder `src/vortiqo/` is the planned Python import package for the agent's code. The ROS folders `vortiqo_description` and `vortiqo_gazebo` are separate ROS packages with a shared project prefix. These names identify software namespaces and packages; they are not extra copies of the company folder. The repository root is the project workspace, while **Vortiqo** is the company the project is for.
