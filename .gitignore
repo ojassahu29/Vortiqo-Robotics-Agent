@@ -1,26 +1,27 @@
-# Python Virtual Environments
-.venv/
-.venvs/
-venv/
-env/
-
-# Python
+# Python and local environments
 __pycache__/
 *.py[cod]
+.venv/
+.venvs/
+.pytest_cache/
+.ruff_cache/
 *.egg-info/
 
-# Environment / secrets
+# ROS 2 build output
+ros2_ws/build/
+ros2_ws/install/
+ros2_ws/log/
+
+# Frontend output
+frontend/node_modules/
+frontend/dist/
+
+# Local artifacts and secrets
 .env
-
-# Logs
-logs/
-*.log
-
-# Model caches / weights
-models/hf_cache/
+/logs/
+/runs/
+/models/
+/data/
 *.pt
 *.pth
 *.safetensors
-
-# External repositories
-external/sam3/
