@@ -176,6 +176,22 @@ docs/                      # Setup, architecture, and evaluation notes
 
 The two ROS package directories are organizational placeholders, not buildable packages yet. Select and verify a robot before adding package manifests or a MoveIt configuration. Keep model weights, datasets, virtual environments, ROS build output, frontend dependencies, and run logs out of Git. Add dependency locks and setup instructions when each working environment exists.
 
+## Local storage policy
+
+Keep all large local assets on the Z drive under this workspace:
+
+```text
+.venvs/<component>/          # Component-specific Python environments
+external/<repository>/       # Third-party source checkouts
+models/hf_cache/             # Hugging Face tokens and model checkpoints
+models/pip_cache/            # Temporary pip download cache
+models/tmp/                  # Temporary package and model files
+data/                         # Datasets and generated evaluation data
+logs/                         # Local execution and installation logs
+```
+
+Install packages into a component-specific virtual environment rather than the global Python installation. Set `HF_HOME`, `HUGGINGFACE_HUB_CACHE`, `PIP_CACHE_DIR`, `TEMP`, and `TMP` to Z-drive paths before large downloads. If a required tool cannot avoid writing large data to C, request approval before installing it.
+
 ## 6. Order of work for the first session
 
 1. Select the Ubuntu environment and confirm Jazzy/Harmonic launch and graphics.
@@ -185,3 +201,11 @@ The two ROS package directories are organizational placeholders, not buildable p
 5. Record the exact setup commands and the first blocker or passing result before adding AI dependencies.
 
 The main rule for the project is to keep a working, measured baseline at each milestone. AI components should improve a complete physical loop, not substitute for one.
+
+## Current local baseline
+
+- Workspace: `Z:\Robotics-AI-Agent`.
+- Local policy: keep environments, third-party checkouts, model weights and caches, temporary downloads, datasets, and logs on the Z drive. These paths are excluded from Git by `.gitignore`.
+- SAM3: source checkout at `external/sam3`; Python environment at `.venvs/sam3`; Hugging Face cache and checkpoint at `models/hf_cache`. The installed environment reports PyTorch `2.10.0+cu128`, imports SAM3 from the Z drive, and detects CUDA. The earlier setup session also completed a SAM3 image prompt and mask inference check on the GPU.
+- Simulator: ROS 2 and Gazebo are not configured yet. Choose and verify the Linux/WSL/native setup as the next milestone; do not install simulator dependencies until that setup step is approved.
+- Git: local SAM3 and model files are ignored. The README and this plan are the tracked project guide; review local changes before committing or pushing.

@@ -18,6 +18,7 @@ frontend/dist/
 
 # Local artifacts and secrets
 .env
+/external/
 /logs/
 /runs/
 /models/

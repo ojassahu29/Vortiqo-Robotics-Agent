@@ -25,7 +25,7 @@ SAM3 is intended to locate and segment objects; SmolVLM2 is intended to help ide
 
 The target is a reproducible end-to-end simulation, launched with documented commands, that accepts written goals through the frontend and completes direct and reasonably vague tabletop tasks. Evaluation will use varied object arrangements and prompt wording, and will report task success, perception errors, grasp failures, and replanning behavior. Gazebo's true object state may score runs but will not be the agent's runtime perception source.
 
-**Status:** Fresh start. The repository has an empty, organized scaffold and an [implementation plan](PROJECT_PLAN.md). The simulator, agent, models, and frontend still need to be built.
+**Status:** The repository has an organized scaffold and an [implementation plan](PROJECT_PLAN.md). SAM3's source, Python environment, Hugging Face cache, and downloaded checkpoint are stored locally on the Z drive. The environment detects the CUDA GPU. ROS 2, Gazebo, robot control, the agent, and frontend are still to be set up or built.
 
 ## Why `vortiqo` appears in folder names
 
