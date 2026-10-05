@@ -174,11 +174,11 @@ tests/
 docs/                      # Setup, architecture, and evaluation notes
 ```
 
-The two ROS package directories are organizational placeholders, not buildable packages yet. Select and verify a robot before adding package manifests or a MoveIt configuration. Keep model weights, datasets, virtual environments, ROS build output, frontend dependencies, and run logs out of Git. Add dependency locks and setup instructions when each working environment exists.
+`vortiqo_gazebo` is now a buildable ROS package with a starter tabletop world and RGB-D camera bridge. `vortiqo_description` remains a placeholder until an arm and gripper are selected. Keep model weights, datasets, virtual environments, ROS build output, frontend dependencies, and run logs out of Git. Add dependency locks and setup instructions when each working environment exists.
 
 ## Local storage policy
 
-Keep all large local assets on the Z drive under this workspace:
+Keep large project assets on the Z drive under this workspace. Keep the WSL distribution on Z outside the repository so system packages never become project files:
 
 ```text
 .venvs/<component>/          # Component-specific Python environments
@@ -188,6 +188,7 @@ models/pip_cache/            # Temporary pip download cache
 models/tmp/                  # Temporary package and model files
 data/                         # Datasets and generated evaluation data
 logs/                         # Local execution and installation logs
+Z:\WSL\Ubuntu-24.04\          # Separate Ubuntu virtual disk with ROS/Gazebo packages
 ```
 
 Install packages into a component-specific virtual environment rather than the global Python installation. Set `HF_HOME`, `HUGGINGFACE_HUB_CACHE`, `PIP_CACHE_DIR`, `TEMP`, and `TMP` to Z-drive paths before large downloads. If a required tool cannot avoid writing large data to C, request approval before installing it.
@@ -207,5 +208,5 @@ The main rule for the project is to keep a working, measured baseline at each mi
 - Workspace: `Z:\Robotics-AI-Agent`.
 - Local policy: keep environments, third-party checkouts, model weights and caches, temporary downloads, datasets, and logs on the Z drive. These paths are excluded from Git by `.gitignore`.
 - SAM3: source checkout at `external/sam3`; Python environment at `.venvs/sam3`; Hugging Face cache and checkpoint at `models/hf_cache`. The installed environment reports PyTorch `2.10.0+cu128`, imports SAM3 from the Z drive, and detects CUDA. The earlier setup session also completed a SAM3 image prompt and mask inference check on the GPU.
-- Simulator: ROS 2 and Gazebo are not configured yet. Choose and verify the Linux/WSL/native setup as the next milestone; do not install simulator dependencies until that setup step is approved.
+- Simulator: Ubuntu 24.04 is installed as a separate WSL2 distribution at `Z:\WSL\Ubuntu-24.04`, outside this repository. ROS 2 Jazzy, Gazebo Harmonic, `ros_gz_bridge`, `gz_ros2_control`, colcon, and rosdep are installed there. The project world builds and publishes RGB, depth, camera info, and clock topics. The installed controller demo accepted a joint trajectory and published joint state and TF. See [simulation setup](docs/SIMULATION_SETUP.md) for commands and results.
 - Git: local SAM3 and model files are ignored. The README and this plan are the tracked project guide; review local changes before committing or pushing.

@@ -1,0 +1,80 @@
+<?xml version="1.0"?>
+<sdf version="1.9">
+  <world name="vortiqo_tabletop">
+    <gravity>0 0 -9.81</gravity>
+    <physics name="step" type="ignored">
+      <max_step_size>0.001</max_step_size>
+      <real_time_factor>1.0</real_time_factor>
+    </physics>
+
+    <plugin filename="gz-sim-physics-system" name="gz::sim::systems::Physics"/>
+    <plugin filename="gz-sim-user-commands-system" name="gz::sim::systems::UserCommands"/>
+    <plugin filename="gz-sim-scene-broadcaster-system" name="gz::sim::systems::SceneBroadcaster"/>
+    <plugin filename="gz-sim-sensors-system" name="gz::sim::systems::Sensors">
+      <render_engine>ogre2</render_engine>
+    </plugin>
+
+    <light name="sun" type="directional">
+      <pose>0 0 3 0 0 0</pose>
+      <diffuse>0.9 0.9 0.9 1</diffuse>
+      <specular>0.2 0.2 0.2 1</specular>
+      <direction>-0.3 0.4 -0.8</direction>
+    </light>
+
+    <model name="table">
+      <static>true</static>
+      <pose>0 0 0.35 0 0 0</pose>
+      <link name="top">
+        <collision name="collision">
+          <geometry><box><size>1.2 0.8 0.7</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>1.2 0.8 0.7</size></box></geometry>
+          <material><ambient>0.52 0.37 0.24 1</ambient><diffuse>0.52 0.37 0.24 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="red_block">
+      <pose>-0.18 0 0.75 0 0 0</pose>
+      <link name="body">
+        <inertial><mass>0.1</mass><inertia><ixx>0.0001</ixx><iyy>0.0001</iyy><izz>0.0001</izz></inertia></inertial>
+        <collision name="collision"><geometry><box><size>0.08 0.08 0.08</size></box></geometry></collision>
+        <visual name="visual">
+          <geometry><box><size>0.08 0.08 0.08</size></box></geometry>
+          <material><ambient>0.8 0.05 0.05 1</ambient><diffuse>0.8 0.05 0.05 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="blue_block">
+      <pose>0.12 0.15 0.75 0 0 0</pose>
+      <link name="body">
+        <inertial><mass>0.1</mass><inertia><ixx>0.0001</ixx><iyy>0.0001</iyy><izz>0.0001</izz></inertia></inertial>
+        <collision name="collision"><geometry><box><size>0.08 0.08 0.08</size></box></geometry></collision>
+        <visual name="visual">
+          <geometry><box><size>0.08 0.08 0.08</size></box></geometry>
+          <material><ambient>0.05 0.18 0.8 1</ambient><diffuse>0.05 0.18 0.8 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="table_camera">
+      <static>true</static>
+      <pose>0 -1.15 1.35 0 0.52 1.5708</pose>
+      <link name="housing">
+        <visual name="visual"><geometry><box><size>0.08 0.08 0.08</size></box></geometry></visual>
+        <sensor name="rgbd" type="rgbd_camera">
+          <camera>
+            <horizontal_fov>1.2</horizontal_fov>
+            <image><width>640</width><height>480</height></image>
+            <clip><near>0.1</near><far>4.0</far></clip>
+          </camera>
+          <always_on>true</always_on>
+          <update_rate>15</update_rate>
+          <topic>table_camera</topic>
+        </sensor>
+      </link>
+    </model>
+  </world>
+</sdf>
